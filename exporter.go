@@ -30,25 +30,30 @@ func (e *exporter) ExportView(viewData *view.Data) {
 
 	for _, row := range viewData.Rows {
 		fields := make(map[string]interface{})
+		var suffix string
 
 		switch d := row.Data.(type) {
 		case *view.CountData:
 			fields["value"] = float64(d.Value)
+			suffix = ".count"
 		case *view.DistributionData:
 			fields["min"] = d.Min
 			fields["max"] = d.Max
 			fields["mean"] = d.Mean
 			fields["count"] = d.Count
+			suffix = ".histogram"
 		case *view.LastValueData:
 			fields["value"] = float64(d.Value)
+			suffix = ".gauge"
 		case *view.SumData:
 			fields["value"] = float64(d.Value)
+			suffix = ".gauge"
 		default:
 			e.errorHandler(fmt.Errorf("unknown AggregationData type: %T", row.Data))
 			return
 		}
 
-		pt, err := client.NewPoint(viewData.View.Name, convertTags(row.Tags), fields, viewData.End)
+		pt, err := client.NewPoint(viewData.View.Name + suffix, convertTags(row.Tags), fields, viewData.End)
 		if err != nil {
 			e.errorHandler(err)
 		}
