@@ -2,6 +2,7 @@ package influxdb
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/influxdata/influxdb/client/v2"
 	"go.opencensus.io/stats/view"
@@ -13,8 +14,8 @@ func NewExporter(influxCli client.Client, database string, errorHandler func(err
 }
 
 type exporter struct {
-	influxCli client.Client
-	database string
+	influxCli    client.Client
+	database     string
 	errorHandler func(error)
 }
 
@@ -48,7 +49,10 @@ func (e *exporter) ExportView(viewData *view.Data) {
 			return
 		}
 
-		pt, err := client.NewPoint(viewData.View.Name, convertTags(row.Tags), fields, viewData.End)
+		tagsMap := convertTags(row.Tags)
+		tagsMap = addHostnameTag(tagsMap)
+
+		pt, err := client.NewPoint(viewData.View.Name, tagsMap, fields, viewData.End)
 		if err != nil {
 			e.errorHandler(err)
 		}
@@ -59,6 +63,14 @@ func (e *exporter) ExportView(viewData *view.Data) {
 	if err != nil {
 		e.errorHandler(err)
 	}
+}
+
+func addHostnameTag(tagsMap map[string]string) map[string]string {
+	hostname, err := os.Hostname()
+	if err == nil {
+		tagsMap["hostname"] = hostname
+	}
+	return tagsMap
 }
 
 func convertTags(tags []tag.Tag) map[string]string {
