@@ -55,7 +55,7 @@ func (e *exporter) ExportView(viewData *view.Data) {
 		}
 
 		tagsMap := convertTags(row.Tags)
-		tagsMap = addHostnameTag(tagsMap)
+		addHostnameTag(tagsMap)
 
 		pt, err := client.NewPoint(viewData.View.Name, tagsMap, fields, viewData.End)
 		if err != nil {
@@ -70,12 +70,13 @@ func (e *exporter) ExportView(viewData *view.Data) {
 	}
 }
 
-func addHostnameTag(tagsMap map[string]string) map[string]string {
+func addHostnameTag(tagsMap map[string]string) {
 	hostname, err := os.Hostname()
 	if err == nil {
 		tagsMap["hostname"] = hostname
+	} else {
+		tagsMap["hostname"] = "unknown"
 	}
-	return tagsMap
 }
 
 func convertTags(tags []tag.Tag) map[string]string {
