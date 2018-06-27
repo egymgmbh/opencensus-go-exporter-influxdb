@@ -22,7 +22,6 @@ type exporter struct {
 	customTags   map[string]string
 }
 
-// ExportView
 func (e *exporter) ExportView(viewData *view.Data) {
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 		Database:  e.database,
@@ -70,16 +69,16 @@ func (e *exporter) ExportView(viewData *view.Data) {
 	}
 }
 
-// appendAndReplace appends all the data from the second map (toAppend) to the
-// source map. If both have the same key, the one from the second map (toAppend)
+// appendAndReplace appends all the data from the 'elementsMap' to the
+// 'appendable' map. If both have the same key, the one from 'elementsMap'
 // is taken.
-func appendAndReplace(source, toAppend map[string]string) {
-	if source == nil || toAppend == nil {
+func appendAndReplace(appendable, elementsMap map[string]string) {
+	if appendable == nil {
 		return
 	}
 
-	for k, v := range toAppend {
-		source[k] = v
+	for k, v := range elementsMap {
+		appendable[k] = v
 	}
 }
 
