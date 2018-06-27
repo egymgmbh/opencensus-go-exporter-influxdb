@@ -69,16 +69,16 @@ func (e *exporter) ExportView(viewData *view.Data) {
 	}
 }
 
-// appendAndReplace appends all the data from the 'elementsMap' to the
-// 'appendable' map. If both have the same key, the one from 'elementsMap'
+// appendAndReplace appends all the data from the 'src' to the
+// 'dst' map. If both have the same key, the one from 'src'
 // is taken.
-func appendAndReplace(appendable, elementsMap map[string]string) {
-	if appendable == nil {
+func appendAndReplace(dst, src map[string]string) {
+	if dst == nil {
 		return
 	}
 
-	for k, v := range elementsMap {
-		appendable[k] = v
+	for k, v := range src {
+		dst[k] = v
 	}
 }
 
