@@ -8,14 +8,18 @@ import (
 	"go.opencensus.io/tag"
 )
 
-func NewExporter(influxCli client.Client, database string, errorHandler func(error)) view.Exporter {
-	return &exporter{influxCli, database, errorHandler}
+// NewExporter create a new InfluxDb exporter.
+// It requires an influxDb client, a name for the database, one error handler and additionally accepts custom tags
+// for the export.
+func NewExporter(influxCli client.Client, database string, errorHandler func(error), customTags map[string]string) view.Exporter {
+	return &exporter{influxCli: influxCli, database: database, errorHandler: errorHandler, customTags: customTags}
 }
 
 type exporter struct {
-	influxCli client.Client
-	database string
+	influxCli    client.Client
+	database     string
 	errorHandler func(error)
+	customTags   map[string]string
 }
 
 func (e *exporter) ExportView(viewData *view.Data) {
@@ -48,7 +52,11 @@ func (e *exporter) ExportView(viewData *view.Data) {
 			return
 		}
 
-		pt, err := client.NewPoint(viewData.View.Name, convertTags(row.Tags), fields, viewData.End)
+		tagsMap := make(map[string]string)
+		appendAndReplace(tagsMap, e.customTags)
+		appendAndReplace(tagsMap, convertTags(row.Tags))
+
+		pt, err := client.NewPoint(viewData.View.Name, tagsMap, fields, viewData.End)
 		if err != nil {
 			e.errorHandler(err)
 		}
@@ -58,6 +66,19 @@ func (e *exporter) ExportView(viewData *view.Data) {
 	err = e.influxCli.Write(bp)
 	if err != nil {
 		e.errorHandler(err)
+	}
+}
+
+// appendAndReplace appends all the data from the 'src' to the
+// 'dst' map. If both have the same key, the one from 'src'
+// is taken.
+func appendAndReplace(dst, src map[string]string) {
+	if dst == nil {
+		return
+	}
+
+	for k, v := range src {
+		dst[k] = v
 	}
 }
 
