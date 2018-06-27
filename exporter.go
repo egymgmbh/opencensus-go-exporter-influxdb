@@ -2,23 +2,27 @@ package influxdb
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/influxdata/influxdb/client/v2"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 )
 
-func NewExporter(influxCli client.Client, database string, errorHandler func(error)) view.Exporter {
-	return &exporter{influxCli, database, errorHandler}
+// NewExporter create a new InfluxDb exporter.
+// It requires an influxDb client, a name for the database, one error handler and additionally accepts custom tags
+// for the export.
+func NewExporter(influxCli client.Client, database string, errorHandler func(error), customTags map[string]string) view.Exporter {
+	return &exporter{influxCli: influxCli, database: database, errorHandler: errorHandler, customTags: customTags}
 }
 
 type exporter struct {
 	influxCli    client.Client
 	database     string
 	errorHandler func(error)
+	customTags   map[string]string
 }
 
+// ExportView
 func (e *exporter) ExportView(viewData *view.Data) {
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 		Database:  e.database,
@@ -49,8 +53,9 @@ func (e *exporter) ExportView(viewData *view.Data) {
 			return
 		}
 
-		tagsMap := convertTags(row.Tags)
-		addHostnameTag(tagsMap)
+		tagsMap := make(map[string]string)
+		appendAndReplace(tagsMap, e.customTags)
+		appendAndReplace(tagsMap, convertTags(row.Tags))
 
 		pt, err := client.NewPoint(viewData.View.Name, tagsMap, fields, viewData.End)
 		if err != nil {
@@ -65,12 +70,16 @@ func (e *exporter) ExportView(viewData *view.Data) {
 	}
 }
 
-func addHostnameTag(tagsMap map[string]string) {
-	hostname, err := os.Hostname()
-	if err == nil {
-		tagsMap["hostname"] = hostname
-	} else {
-		tagsMap["hostname"] = "unknown"
+// appendAndReplace appends all the data from the second map (toAppend) to the
+// source map. If both have the same key, the one from the second map (toAppend)
+// is taken.
+func appendAndReplace(source, toAppend map[string]string) {
+	if source == nil || toAppend == nil {
+		return
+	}
+
+	for k, v := range toAppend {
+		source[k] = v
 	}
 }
 
