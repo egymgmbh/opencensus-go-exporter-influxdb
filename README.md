@@ -31,14 +31,15 @@ func main() {
         Password: influxPass,
     })
     if err != nil {
-        log.Fatal("InfluxDB client connection failure: ", err)
+        log.Fatalf("InfluxDB client connection failure: %v", err)
     }
     defer influxClient.Close()
 
     // Register our custom exporter to opencensus
-    view.RegisterExporter(influxdb.NewExporter(influxClient, influxDB, func(err error) {
-        log.Fatal(err)
-    }))
+    exporter := influxdb.NewExporter(influxClient, influxDB, func(err error) {
+        log.Fatalf("error while registering Opencensus exporter: %v", err)
+    }, nil)
+    view.RegisterExporter(exporter)
 
     // Useful metrics to be exported from opencensus using the exporter
     view.Register(ochttp.ServerRequestCountByMethod)
